@@ -72,7 +72,7 @@ node --version
 ## 2. Install and run (recommended: `run.sh`)
 
 ```bash
-git clone https://github.com/<your-user>/VisualNmap.git
+git clone https://github.com/AustenLynn/VisualNmap.git
 cd VisualNmap
 ./run.sh
 ```

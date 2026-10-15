@@ -387,4 +387,4 @@ Container runs as root inside the container (needed for raw sockets) with only t
 
 - Working app per above.
 - `README.md` — what it is, legal/authorization note, requirements, install & run (run.sh and Docker), guided-mode walkthrough, builder walkthrough, reading results, Docker networking limits, troubleshooting, development & tests.
-- Public or private GitHub repo `VisualNmap` (visibility chosen by the user).
+- Public GitHub repo `AustenLynn/VisualNmap`, MIT license.
