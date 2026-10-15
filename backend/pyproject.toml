@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visualnmap"
+version = "0.1.0"
+description = "Visual, beginner-friendly local web dashboard for Nmap"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "PyYAML>=6.0",
+  "defusedxml>=0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "httpx>=0.27"]
+
+[tool.setuptools.packages.find]
+include = ["visualnmap*"]
+
+[tool.setuptools.package-data]
+visualnmap = ["catalog/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["e2e: runs the real nmap binary (set VISUALNMAP_E2E=1)"]
