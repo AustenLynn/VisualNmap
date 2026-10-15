@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+
+# App data (scan history may contain sensitive network info)
+data/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
