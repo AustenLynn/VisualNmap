@@ -5,6 +5,7 @@ import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Iterable
 from typing import Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -20,6 +21,10 @@ from .parser import parse_nmap_xml
 from .runner import ScanBusy, ScanRunner
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+# Host names the dashboard answers to. Anything else is refused, which blocks DNS-rebinding
+# attacks (a web page whose own domain is made to resolve to 127.0.0.1).
+DEFAULT_ALLOWED_HOSTS = ("127.0.0.1", "localhost", "::1")
+WILDCARD_BINDS = ("0.0.0.0", "::", "")
 
 
 @dataclass
@@ -28,15 +33,32 @@ class Settings:
     port: int
     data_dir: Path
     static_dir: Path
+    allowed_hosts: list[str]
 
     @classmethod
     def from_env(cls) -> "Settings":
+        host = os.environ.get("VISUALNMAP_HOST", "127.0.0.1")
+        extra = [h.strip() for h in os.environ.get("VISUALNMAP_ALLOWED_HOSTS", "").split(",") if h.strip()]
+        allowed = [*DEFAULT_ALLOWED_HOSTS, *extra]
+        if host not in WILDCARD_BINDS:
+            allowed.append(host)
         return cls(
-            host=os.environ.get("VISUALNMAP_HOST", "127.0.0.1"),
+            host=host,
             port=int(os.environ.get("VISUALNMAP_PORT", "8765")),
             data_dir=Path(os.environ.get("VISUALNMAP_DATA", "data")),
             static_dir=Path(os.environ.get("VISUALNMAP_STATIC", str(REPO_ROOT / "frontend" / "dist"))),
+            allowed_hosts=allowed,
         )
+
+
+def hostname_of(host_header: str) -> str:
+    """The hostname part of a Host header, lower-cased, without port or IPv6 brackets."""
+    host = host_header.strip().lower()
+    if host.startswith("["):
+        return host[1 : host.index("]")] if "]" in host else host[1:]
+    if host.count(":") == 1:
+        return host.split(":", 1)[0]
+    return host
 
 
 def _origin_ok(headers) -> bool:
@@ -45,6 +67,31 @@ def _origin_ok(headers) -> bool:
         return True
     host = headers.get("host", "")
     return origin in (f"http://{host}", f"https://{host}")
+
+
+class HostGuard:
+    """ASGI middleware: refuse HTTP requests and WebSockets whose Host header isn't allowed."""
+
+    def __init__(self, app, allowed: Iterable[str]):
+        self.app = app
+        self.allowed = {h.lower() for h in allowed}
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket"):
+            host = dict(scope["headers"]).get(b"host", b"").decode("latin-1")
+            if hostname_of(host) not in self.allowed:
+                if scope["type"] == "http":
+                    response = JSONResponse(
+                        {"detail": "Unknown host name. Open VisualNmap at http://127.0.0.1:8765 "
+                                   "(or add the name to VISUALNMAP_ALLOWED_HOSTS)."},
+                        status_code=400,
+                    )
+                    await response(scope, receive, send)
+                else:
+                    await receive()  # websocket.connect
+                    await send({"type": "websocket.close", "code": 1008})
+                return
+        await self.app(scope, receive, send)
 
 
 def check_origin(request: Request) -> None:
@@ -56,7 +103,13 @@ def _error(status: int, **body) -> JSONResponse:
     return JSONResponse(status_code=status, content=body)
 
 
-def create_app(env: Environment, catalog: Catalog, history: History, static_dir: Path | None = None) -> FastAPI:
+def create_app(
+    env: Environment,
+    catalog: Catalog,
+    history: History,
+    static_dir: Path | None = None,
+    allowed_hosts: Iterable[str] = DEFAULT_ALLOWED_HOSTS,
+) -> FastAPI:
     history.recover_interrupted()
 
     async def on_finish(scan_id: str, status: str, xml: str, stderr_tail: str) -> None:
@@ -71,6 +124,7 @@ def create_app(env: Environment, catalog: Catalog, history: History, static_dir:
 
     app = FastAPI(title="VisualNmap", lifespan=lifespan)
     app.state.runner = runner
+    app.add_middleware(HostGuard, allowed=list(allowed_hosts))
     api = APIRouter(prefix="/api")
     guarded = [Depends(check_origin)]
 

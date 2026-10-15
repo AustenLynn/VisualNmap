@@ -23,7 +23,7 @@ def run_scan(client: TestClient, body: dict) -> dict:
     resp = client.post("/api/scans", json=body)
     assert resp.status_code == 201, resp.text
     sid = resp.json()["scan_id"]
-    with client.websocket_connect(f"/api/scans/{sid}/stream") as ws:
+    with client.websocket_connect(f"ws://127.0.0.1:8765/api/scans/{sid}/stream") as ws:
         while True:
             try:
                 event = ws.receive_json()
@@ -37,7 +37,7 @@ def run_scan(client: TestClient, body: dict) -> dict:
 @pytest.fixture
 def client(catalog, tmp_path):
     history = History(tmp_path / "e2e.db")
-    with TestClient(create_app(detect_environment(), catalog, history)) as c:
+    with TestClient(create_app(detect_environment(), catalog, history), base_url="http://127.0.0.1:8765") as c:
         yield c
     history.close()
 

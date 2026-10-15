@@ -106,6 +106,7 @@ Everything still works, but options marked 🔒 are disabled (unless your Nmap i
 | `VISUALNMAP_PORT` | `8765` | Port the dashboard listens on |
 | `VISUALNMAP_HOST` | `127.0.0.1` | Address it listens on. **Leave this alone** unless you understand the risk (§13) |
 | `VISUALNMAP_DATA` | `./data` | Where scan history (`visualnmap.db`) is stored |
+| `VISUALNMAP_ALLOWED_HOSTS` | *(empty)* | Extra host names/IPs the dashboard answers to, comma-separated (it always accepts `127.0.0.1`, `localhost` and `::1`) |
 
 ---
 
@@ -391,7 +392,7 @@ VisualNmap detects which situation you're in:
 | **"Nmap not found"** red banner | `sudo apt install nmap`, then restart the app. |
 | **"Started without sudo"** yellow banner | Restart with `./run.sh` (not `--no-sudo`). |
 | **Page doesn't load** | Is the terminal still showing "running at…"? Is something else using port 8765? Try `VISUALNMAP_PORT=8899 ./run.sh`. |
-| **WSL2: Windows browser can't reach it** | WSL2 forwards `localhost` automatically on current Windows versions. If it doesn't, open `http://<WSL IP>:8765` (find it with `hostname -I`) **and** run with `VISUALNMAP_HOST=0.0.0.0`, but only on a trusted network (§13). |
+| **WSL2: Windows browser can't reach it** | WSL2 forwards `localhost` automatically on current Windows versions. If it doesn't, open `http://<WSL IP>:8765` (find it with `hostname -I`) **and** run with `VISUALNMAP_HOST=0.0.0.0 VISUALNMAP_ALLOWED_HOSTS=<WSL IP>`, but only on a trusted network (§13). |
 | **"0 hosts up"** | The device may block ping. Use the **Retry with -Pn** button, or tick `-Pn` in the builder. |
 | **"Couldn't find that host name"** | Typo, or DNS can't resolve it. Try the IP address instead. |
 | **Everything shows `filtered`** | A firewall is dropping probes. Try fewer ports, `-Pn`, or (if you're allowed to) a different technique like `-sS`. |
@@ -411,6 +412,7 @@ VisualNmap runs a powerful tool with root privileges, so it's deliberately locke
 - **Allowlist only.** Only the options listed in this README can reach Nmap. There is deliberately **no "extra arguments" box**: options like `--script`, `-iL` (read targets from a file) or `-oN` (write to a file) could read or write files as root.
 - **Targets are validated** (IP, CIDR range, IP range or host name; nothing starting with `-`).
 - **Cross-site protection.** The server rejects requests coming from other websites open in your browser.
+- **DNS-rebinding protection.** The server only answers to the host names `127.0.0.1`, `localhost` and `::1` (plus any you add in `VISUALNMAP_ALLOWED_HOSTS`), so a malicious website can't trick your browser into talking to it under another name.
 - **Safe XML parsing** with `defusedxml`.
 
 If you change `VISUALNMAP_HOST` to `0.0.0.0`, **anyone who can reach your machine can run scans as root through it**. Don't do that on untrusted networks.

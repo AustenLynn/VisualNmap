@@ -5,12 +5,18 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from visualnmap.api import create_app
+from visualnmap.api import create_app, hostname_of
 from visualnmap.environment import Environment
 from visualnmap.history import History
 from visualnmap.models import ScanRequest
 
 FAKE = str(Path(__file__).parent / "fixtures" / "fake_nmap.py")
+BASE = "http://127.0.0.1:8765"
+
+
+def local_client(app) -> TestClient:
+    """A client that talks to the app the way a browser on this machine does."""
+    return TestClient(app, base_url=BASE)
 
 
 def make_env(nmap=FAKE, root=True) -> Environment:
@@ -27,7 +33,7 @@ def history(tmp_path):
 @pytest.fixture
 def client(catalog, history, monkeypatch):
     monkeypatch.setenv("FAKE_NMAP_MODE", "ok")
-    with TestClient(create_app(make_env(), catalog, history)) as c:
+    with local_client(create_app(make_env(), catalog, history)) as c:
         yield c
 
 
@@ -39,7 +45,7 @@ def start_scan(client, body=None) -> str:
 
 def stream_events(client, scan_id, headers=None) -> list[dict]:
     events = []
-    with client.websocket_connect(f"/api/scans/{scan_id}/stream", headers=headers or {}) as ws:
+    with client.websocket_connect(f"ws://127.0.0.1:8765/api/scans/{scan_id}/stream", headers=headers or {}) as ws:
         while True:
             try:
                 events.append(ws.receive_json())
@@ -79,7 +85,7 @@ def test_preview_invalid_target_422(client):
 
 
 def test_preview_root_option_without_root(catalog, history):
-    with TestClient(create_app(make_env(root=False), catalog, history)) as c:
+    with local_client(create_app(make_env(root=False), catalog, history)) as c:
         resp = c.post("/api/command/preview", json={"target": "10.0.0.1", "options": [{"id": "syn_scan"}]})
     assert resp.status_code == 422
     assert resp.json()["field"] == "options.syn_scan"
@@ -149,7 +155,7 @@ def test_failed_scan_has_resolve_hint(client, monkeypatch):
 
 
 def test_nmap_missing_503(catalog, history):
-    with TestClient(create_app(make_env(nmap=None), catalog, history)) as c:
+    with local_client(create_app(make_env(nmap=None), catalog, history)) as c:
         assert c.get("/api/status").json()["nmap_found"] is False
         resp = c.post("/api/scans", json={"target": "10.0.0.1", "profile_id": "quick_ports"})
     assert resp.status_code == 503
@@ -159,31 +165,31 @@ def test_nmap_missing_503(catalog, history):
 def test_foreign_origin_blocked(client):
     resp = client.post("/api/scans", json={"target": "10.0.0.1"}, headers={"origin": "http://evil.example"})
     assert resp.status_code == 403
-    ok = client.post("/api/command/preview", json={"target": "10.0.0.1"}, headers={"origin": "http://testserver"})
+    ok = client.post("/api/command/preview", json={"target": "10.0.0.1"}, headers={"origin": BASE})
     assert ok.status_code == 200
 
 
 def test_ws_foreign_origin_rejected(client):
     sid = start_scan(client)
     with pytest.raises(WebSocketDisconnect):
-        with client.websocket_connect(f"/api/scans/{sid}/stream", headers={"origin": "http://evil.example"}) as ws:
+        with client.websocket_connect(f"ws://127.0.0.1:8765/api/scans/{sid}/stream", headers={"origin": "http://evil.example"}) as ws:
             ws.receive_json()
     stream_events(client, sid)
 
 
 def test_ws_for_finished_scan_after_restart_sends_done(catalog, history, monkeypatch):
     monkeypatch.setenv("FAKE_NMAP_MODE", "ok")
-    with TestClient(create_app(make_env(), catalog, history)) as c1:
+    with local_client(create_app(make_env(), catalog, history)) as c1:
         sid = start_scan(c1)
         stream_events(c1, sid)
-    with TestClient(create_app(make_env(), catalog, history)) as c2:  # fresh runner, same history
+    with local_client(create_app(make_env(), catalog, history)) as c2:  # fresh runner, same history
         assert stream_events(c2, sid) == [{"type": "done", "status": "completed"}]
         assert stream_events(c2, "nope") == [{"type": "error", "message": "Unknown scan."}]
 
 
 def test_interrupted_scans_recovered_on_startup(catalog, history):
     sid = history.create(ScanRequest(target="10.0.0.1"), ["nmap", "10.0.0.1"])
-    with TestClient(create_app(make_env(), catalog, history)) as c:
+    with local_client(create_app(make_env(), catalog, history)) as c:
         assert c.get(f"/api/scans/{sid}").json()["status"] == "failed"
 
 
@@ -207,7 +213,7 @@ def test_static_spa_serving(catalog, history, tmp_path):
     (static / "index.html").write_text("<html>INDEX</html>")
     (static / "assets" / "app.js").write_text("console.log(1)")
     (tmp_path / "secret.txt").write_text("SECRET")
-    with TestClient(create_app(make_env(), catalog, history, static_dir=static)) as c:
+    with local_client(create_app(make_env(), catalog, history, static_dir=static)) as c:
         assert "INDEX" in c.get("/").text
         assert "INDEX" in c.get("/history").text
         assert c.get("/assets/app.js").text == "console.log(1)"
@@ -216,5 +222,41 @@ def test_static_spa_serving(catalog, history, tmp_path):
 
 
 def test_frontend_not_built_message(catalog, history, tmp_path):
-    with TestClient(create_app(make_env(), catalog, history, static_dir=tmp_path / "missing")) as c:
+    with local_client(create_app(make_env(), catalog, history, static_dir=tmp_path / "missing")) as c:
         assert "Frontend not built" in c.get("/").text
+
+
+EVIL = {"host": "evil.example:8765", "origin": "http://evil.example:8765"}
+
+
+def test_dns_rebinding_host_rejected_for_http(client):
+    # A rebinding attack makes Host and Origin agree with each other, so only a Host allowlist stops it.
+    assert client.get("/api/status", headers={"host": "evil.example:8765"}).status_code == 400
+    resp = client.post("/api/scans", json={"target": "10.0.0.1", "profile_id": "quick_ports"}, headers=EVIL)
+    assert resp.status_code == 400
+
+
+def test_dns_rebinding_host_rejected_for_websocket(client):
+    sid = start_scan(client)
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect(f"ws://127.0.0.1:8765/api/scans/{sid}/stream", headers=EVIL) as ws:
+            ws.receive_json()
+    stream_events(client, sid)
+
+
+def test_localhost_name_allowed(client):
+    assert client.get("/api/status", headers={"host": "localhost:8765"}).status_code == 200
+
+
+def test_extra_allowed_host(catalog, history):
+    app = create_app(make_env(), catalog, history, allowed_hosts=["127.0.0.1", "192.168.1.5"])
+    with TestClient(app, base_url="http://192.168.1.5:8765") as c:
+        assert c.get("/api/status").status_code == 200
+
+
+@pytest.mark.parametrize(
+    "header,name",
+    [("127.0.0.1:8765", "127.0.0.1"), ("LOCALHOST", "localhost"), ("[::1]:8765", "::1"), ("::1", "::1"), ("", "")],
+)
+def test_hostname_of(header, name):
+    assert hostname_of(header) == name

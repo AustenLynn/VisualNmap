@@ -14,7 +14,7 @@ def main() -> None:
     env = detect_environment()
     catalog = load_catalog()
     history = History(settings.data_dir / "visualnmap.db")
-    app = create_app(env, catalog, history, settings.static_dir)
+    app = create_app(env, catalog, history, settings.static_dir, settings.allowed_hosts)
 
     print(f"Nmap: {env.nmap_version or 'NOT FOUND (sudo apt install nmap)'}")
     print(f"Raw packets (root-only scans): {'available' if env.can_raw else 'not available (run with sudo)'}")
