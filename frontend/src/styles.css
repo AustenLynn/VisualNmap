@@ -81,3 +81,15 @@ th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .info-btn { padding: 0 6px; border: none; background: none; color: var(--accent); }
 .info-pop { position: absolute; z-index: 5; top: 100%; left: 0; max-width: 520px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; box-shadow: 0 6px 24px rgb(0 0 0 / 0.2); }
 .info-pop .meta { color: var(--muted); font-size: 13px; }
+
+.stepper { display: flex; gap: 16px; list-style: none; padding: 0; margin: 0 0 8px; color: var(--muted); flex-wrap: wrap; font-size: 13px; }
+.stepper .current { color: var(--accent); font-weight: 600; }
+.stepper .done { color: var(--ok); }
+.profile-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.profile-card { display: grid; gap: 6px; text-align: left; padding: 14px; border-radius: 10px; }
+.profile-card.selected, .speed-card.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.profile-question { font-weight: 600; }
+.speed-options { display: grid; gap: 10px; max-width: 640px; }
+.speed-card { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; }
+.speed-card .muted { grid-column: 2; }
+.wizard-nav { display: flex; gap: 8px; margin-top: 20px; }
