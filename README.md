@@ -17,8 +17,6 @@ There are two ways to use it:
 | 🧭 **Guided mode** | People learning Nmap | A 4-step wizard: *what do you want to find out → what to scan → how fast → review & run*. |
 | ⚡ **Builder (quick mode)** | People who know Nmap | Every supported option on one screen, grouped by purpose, with the command preview always visible. |
 
-> 🚧 **Status:** in development. This README describes the app as designed (see [`docs/superpowers/specs/2026-10-14-visualnmap-design.md`](docs/superpowers/specs/2026-10-14-visualnmap-design.md)). Some features may not be available yet.
-
 ---
 
 ## ⚠️ Only scan what you're allowed to scan
@@ -132,7 +130,7 @@ docker compose logs -f      # watch the logs
 docker compose down         # stop it
 ```
 
-Scan history is kept in `./data` on your host, so it survives rebuilds.
+Scan history is kept in the Docker volume `visualnmap-data`, so it survives rebuilds. To wipe it: `docker compose down -v`.
 
 ### 3.3 What the compose file does
 
@@ -141,7 +139,7 @@ ports:
   - "127.0.0.1:8765:8765"   # dashboard only reachable from YOUR computer
 cap_add: [NET_RAW, NET_ADMIN] # lets nmap send raw packets (SYN/OS/UDP scans) without --privileged
 volumes:
-  - ./data:/data             # scan history persists here
+  - visualnmap-data:/data    # scan history persists in a named volume
 ```
 
 ### 3.4 Docker networking limits (read this!)
@@ -157,7 +155,7 @@ Inside Docker, Nmap sees the network **through Docker's virtual network (NAT)**,
 
 The app detects when it's running in Docker and shows a blue banner reminding you of this.
 
-**Native Linux only:** for full LAN visibility, edit `docker-compose.yml`, remove the `ports:` section and uncomment `network_mode: host`. On Docker Desktop (Windows/macOS) host networking attaches to Docker's VM, not your real network card, so it doesn't help there. Use `./run.sh` instead.
+**Native Linux only:** for full LAN visibility, edit `docker-compose.yml`, remove the `ports:` section and uncomment `network_mode: host`. On Docker Desktop (Windows/macOS) host networking attaches to Docker's VM, not your real network card, so it doesn't help there. Use `./run.sh` instead. Also uncomment the two environment lines so the dashboard keeps listening on 127.0.0.1 only.
 
 ---
 
@@ -399,7 +397,7 @@ VisualNmap detects which situation you're in:
 | **Scan is taking forever** | Large ranges, `-p-`, UDP and `-T0`/`-T1` are slow. Cancel and narrow the target or ports. |
 | **Docker: scanning `localhost` finds nothing useful** | In Docker, `localhost` is the container. Use your PC's LAN IP. See [§3.4](#34-docker-networking-limits-read-this). |
 | **Docker: `docker` command not found in WSL** | Enable WSL Integration in Docker Desktop settings. |
-| **Want a clean slate** | Stop the app and delete `data/visualnmap.db`. |
+| **Want a clean slate** | Stop the app and delete `data/visualnmap.db` (Docker: `docker compose down -v`). |
 
 ---
 
@@ -432,8 +430,9 @@ docs/       design spec and implementation plan
 
 ```bash
 cd backend
-python3 -m venv .venv && . .venv/bin/activate
-pip install -e '.[dev]'
+python3 -m venv .venv || uv venv .venv     # uv works where python3-venv is missing
+. .venv/bin/activate
+pip install -e '.[dev]' || uv pip install -e '.[dev]'
 pytest                       # unit + API tests (uses a fake nmap, no network)
 VISUALNMAP_E2E=1 pytest -m e2e   # also runs real nmap against 127.0.0.1
 ```
