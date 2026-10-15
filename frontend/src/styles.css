@@ -93,3 +93,23 @@ th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .speed-card { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; }
 .speed-card .muted { grid-column: 2; }
 .wizard-nav { display: flex; gap: 8px; margin-top: 20px; }
+
+.argv { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; overflow-x: auto; }
+.terminal { background: var(--term-bg); color: var(--term-text); border-radius: 8px; padding: 12px; max-height: 320px; overflow: auto; font-size: 13px; white-space: pre-wrap; }
+.running { display: grid; gap: 8px; margin: 12px 0; }
+.progress { display: flex; gap: 12px; align-items: center; }
+.progress progress { width: 320px; max-width: 60vw; }
+.summary-strip { display: flex; gap: 20px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 12px 0; }
+.status-completed { color: var(--ok); } .status-failed { color: var(--error); } .status-cancelled { color: var(--warn); } .status-running { color: var(--info); }
+.hints { display: grid; gap: 8px; margin-bottom: 12px; }
+.results-grid { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 720px) { .results-grid { grid-template-columns: 1fr; } }
+.host-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.host-list button { width: 100%; text-align: left; }
+.host-list button.selected { border-color: var(--accent); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.dot-up { background: var(--ok); }
+.host-detail h2 { margin-top: 0; font-size: 18px; }
+.state-open { color: var(--ok); font-weight: 600; } .state-filtered, .state-open-filtered { color: var(--warn); } .state-closed { color: var(--muted); }
+.states-help { margin-top: 16px; } .states-help dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 8px; } .states-help dd { margin: 0; }
+.result-actions { display: flex; gap: 16px; align-items: center; margin-top: 16px; }

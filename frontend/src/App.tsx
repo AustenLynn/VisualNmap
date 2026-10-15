@@ -4,6 +4,7 @@ import { useAppData } from "./hooks/useAppData";
 import { Builder } from "./pages/Builder";
 import { Guided } from "./pages/Guided";
 import { Home } from "./pages/Home";
+import { Scan } from "./pages/Scan";
 import { Placeholder } from "./pages/Placeholder";
 
 export function App() {
@@ -28,7 +29,7 @@ export function App() {
           <Route path="/" element={<Home />} />
           <Route path="/guided" element={<Guided />} />
           <Route path="/builder" element={<Builder />} />
-          <Route path="/scans/:id" element={<Placeholder name="Scan" />} />
+          <Route path="/scans/:id" element={<Scan />} />
           <Route path="/history" element={<Placeholder name="History" />} />
         </Routes>
       </main>

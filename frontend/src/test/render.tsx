@@ -19,7 +19,7 @@ export function renderWithData(ui: ReactElement, { status = statusRoot, catalog 
       <MemoryRouter initialEntries={[route]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path={path} element={ui} />
-          <Route path="/scans/:id" element={<div>SCAN PAGE</div>} />
+          {path !== "/scans/:id" && <Route path="/scans/:id" element={<div>SCAN PAGE</div>} />}
         </Routes>
       </MemoryRouter>
     </AppDataContext.Provider>,
