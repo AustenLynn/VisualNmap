@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.99 scan initiated Wed Oct 14 18:48:31 2026 as: nmap -sV -O -v -&#45;stats-every 2s -oX - 192.168.1.10 -->
+<nmaprun scanner="nmap" args="nmap -sV -O -v -&#45;stats-every 2s -oX - 192.168.1.10" start="1792025311" startstr="Wed Oct 14 18:48:31 2026" version="7.99" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="1000" services="1-1000"/>
+<verbose level="1"/>
+<debugging level="0"/>
+<taskbegin task="ARP Ping Scan" time="1792025311"/>
+<taskend task="ARP Ping Scan" time="1792025311" extrainfo="1 total hosts"/>
+<taskbegin task="SYN Stealth Scan" time="1792025312"/>
+<taskprogress task="SYN Stealth Scan" time="1792025314" percent="42.50" remaining="3" etc="1792025317"/>
+<taskend task="SYN Stealth Scan" time="1792025317" extrainfo="1000 total ports"/>
+<host starttime="1792025311" endtime="1792025323"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="192.168.1.10" addrtype="ipv4"/>
+<address addr="AA:BB:CC:DD:EE:FF" addrtype="mac" vendor="Raspberry Pi Foundation"/>
+<hostnames>
+<hostname name="pi.lan" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="997">
+<extrareasons reason="reset" count="997" proto="tcp" ports="1-21,23-79,81-444,446-1000"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" product="OpenSSH" version="8.9p1 Ubuntu 3ubuntu0.10" extrainfo="Ubuntu Linux; protocol 2.0" ostype="Linux" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" product="nginx" version="1.24.0" method="probed" conf="10"/></port>
+<port protocol="tcp" portid="445"><state state="filtered" reason="no-response" reason_ttl="0"/><service name="microsoft-ds" method="table" conf="3"/></port>
+</ports>
+<os><portused state="open" proto="tcp" portid="22"/>
+<osmatch name="Linux 5.0 - 5.14" accuracy="96" line="67890"><osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="5.X" accuracy="96"/></osmatch>
+<osmatch name="Linux 4.15 - 5.19" accuracy="93" line="67000"><osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="4.X" accuracy="93"/></osmatch>
+</os>
+<times srtt="512" rttvar="300" to="100000"/>
+</host>
+<runstats><finished time="1792025323" timestr="Wed Oct 14 18:48:43 2026" summary="Nmap done at Wed Oct 14 18:48:43 2026; 1 IP address (1 host up) scanned in 12.50 seconds" elapsed="12.50" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

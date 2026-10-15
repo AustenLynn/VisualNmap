@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<nmaprun scanner="nmap" args="nmap -sn -v -oX - 192.168.1.1-2" start="1792025400" version="7.99" xmloutputversion="1.05">
+<verbose level="1"/>
+<debugging level="0"/>
+<taskbegin task="Ping Scan" time="1792025400"/>
+<taskend task="Ping Scan" time="1792025401" extrainfo="2 total hosts"/>
+<host><status state="up" reason="syn-ack" reason_ttl="0"/>
+<address addr="192.168.1.1" addrtype="ipv4"/>
+<hostnames>
+<hostname name="router.lan" type="PTR"/>
+</hostnames>
+</host>
+<host><status state="down" reason="no-response" reason_ttl="0"/>
+<address addr="192.168.1.2" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+</host>
+<runstats><finished time="1792025402" timestr="Wed Oct 14 18:50:02 2026" elapsed="2.04" summary="Nmap done; 2 IP addresses (1 host up) scanned in 2.04 seconds" exit="success"/><hosts up="1" down="1" total="2"/>
+</runstats>
+</nmaprun>
