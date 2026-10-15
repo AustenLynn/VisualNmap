@@ -1,4 +1,4 @@
-import type { Catalog, OptionSpec, ScanDiff, ScanRecord, StatusInfo } from "../api/types";
+import type { BuiltCommand, Catalog, OptionSpec, ScanDiff, ScanRecord, StatusInfo } from "../api/types";
 
 function opt(partial: Partial<OptionSpec> & Pick<OptionSpec, "id" | "flag" | "group" | "label">): OptionSpec {
   return {
@@ -119,4 +119,16 @@ export const diffFixture: ScanDiff = {
       services_changed: [{ port: "22/tcp", before: "ssh OpenSSH 8.9", after: "ssh OpenSSH 9.6" }],
     },
   },
+};
+
+export const commandFixture: BuiltCommand = {
+  argv: ["/usr/bin/nmap", "-F", "-v", "--stats-every", "2s", "-oX", "-", "10.0.0.1"],
+  parts: [
+    { token: "-F", text: "Checks only the 100 most common ports.", kind: "option" },
+    { token: "-v", text: "App plumbing: makes nmap report its progress.", kind: "plumbing" },
+    { token: "--stats-every 2s", text: "App plumbing: a progress update every 2 seconds.", kind: "plumbing" },
+    { token: "-oX -", text: "App plumbing: results as XML.", kind: "plumbing" },
+    { token: "10.0.0.1", text: "What to scan: 1 address.", kind: "target" },
+  ],
+  warnings: [],
 };

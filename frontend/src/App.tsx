@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { StatusBanner } from "./components/StatusBanner";
 import { useAppData } from "./hooks/useAppData";
+import { Builder } from "./pages/Builder";
 import { Home } from "./pages/Home";
 import { Placeholder } from "./pages/Placeholder";
 
@@ -25,7 +26,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/guided" element={<Placeholder name="Guided" />} />
-          <Route path="/builder" element={<Placeholder name="Builder" />} />
+          <Route path="/builder" element={<Builder />} />
           <Route path="/scans/:id" element={<Placeholder name="Scan" />} />
           <Route path="/history" element={<Placeholder name="History" />} />
         </Routes>
