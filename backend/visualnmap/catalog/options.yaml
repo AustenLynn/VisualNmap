@@ -1,0 +1,411 @@
+# Every nmap option VisualNmap is allowed to use. Nothing outside this file can reach nmap.
+# render: flag = just the flag(s); separate = flag then value as two args; attached = flag+value as one arg.
+groups:
+  - id: discovery
+    label: Host discovery
+    description: How nmap decides which addresses are alive before it scans their ports.
+  - id: technique
+    label: Scan technique
+    description: How each port is probed. Pick at most one TCP technique (UDP can be added on top).
+  - id: ports
+    label: Ports
+    description: Which ports get checked. With nothing chosen, nmap checks the 1,000 most common ports.
+  - id: detection
+    label: Service and OS detection
+    description: Identifying the software behind open ports and the operating system of the host.
+  - id: timing
+    label: Timing
+    description: Trade speed against accuracy and stealth.
+  - id: output
+    label: Output detail
+    description: Extra detail shown in the results.
+
+options:
+  # ---------------- discovery ----------------
+  - id: ping_only
+    flag: "-sn"
+    group: discovery
+    label: Ping scan only (no port scan)
+    summary: Finds which devices are online without checking any ports.
+    details: >-
+      Nmap sends a few quick probes to each address to see if something answers, then stops.
+      It is the fastest way to list the devices on a network. As root on a local network it uses
+      ARP, which also reveals each device's MAC address and manufacturer.
+    when_to_use: To get an inventory of devices on your network before deciding what to scan in depth.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -sn 192.168.1.0/24"
+    conflicts_with: [syn_scan, connect_scan, udp_scan, ack_scan, fin_scan, null_scan, xmas_scan, ports, fast, top_ports, all_ports, service_version, version_intensity, os_detect, os_guess, aggressive, open_only]
+  - id: skip_ping
+    flag: "-Pn"
+    group: discovery
+    label: Skip host discovery (treat all as online)
+    summary: Scans every address even if it doesn't answer pings.
+    details: >-
+      Normally nmap only port-scans hosts that answered its discovery probes. Many devices,
+      especially Windows PCs and firewalled servers, ignore pings, so nmap wrongly thinks they are
+      down. -Pn skips that check. On a big range of empty addresses this is much slower.
+    when_to_use: When a scan says "0 hosts up" or "Host seems down" but you know the device is there.
+    requires_root: false
+    noise: low
+    speed_impact: slower
+    example: "nmap -Pn 192.168.1.20"
+  - id: syn_ping
+    flag: "-PS"
+    group: discovery
+    label: TCP SYN ping on ports
+    summary: Checks if a host is alive by knocking on the given TCP ports.
+    details: >-
+      Sends a TCP connection request to each listed port. Any reply (accept or refuse) proves the
+      host is up. Useful when ICMP ping is blocked but common ports like 22, 80 or 443 are reachable.
+    when_to_use: When ordinary pings are blocked by a firewall.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -PS22,80,443 192.168.1.0/24"
+    render: attached
+    value: { type: ports, default: "22,80,443", placeholder: "22,80,443" }
+  - id: ack_ping
+    flag: "-PA"
+    group: discovery
+    label: TCP ACK ping on ports
+    summary: Checks if a host is alive by sending TCP ACK packets to the given ports.
+    details: >-
+      Sends a packet that looks like part of an existing connection. Hosts reply with a reset,
+      which proves they are up. Some simple firewalls that block SYN pings let these through.
+    when_to_use: Combined with SYN ping to get past stateless firewalls.
+    requires_root: true
+    noise: low
+    speed_impact: none
+    example: "nmap -PA80,443 192.168.1.0/24"
+    render: attached
+    value: { type: ports, default: "80,443", placeholder: "80,443" }
+  - id: icmp_ping
+    flag: "-PE"
+    group: discovery
+    label: ICMP echo ping
+    summary: Uses the classic "ping" packet to see if hosts are alive.
+    details: >-
+      Sends an ICMP echo request, the same thing the ping command sends. Fast and simple, but many
+      firewalls drop it, so combine it with a TCP ping for better coverage.
+    when_to_use: On internal networks where ping is allowed.
+    requires_root: true
+    noise: low
+    speed_impact: none
+    example: "nmap -PE -sn 10.0.0.0/24"
+  - id: no_dns
+    flag: "-n"
+    group: discovery
+    label: Don't look up host names
+    summary: Skips reverse-DNS lookups, so results show only IP addresses.
+    details: >-
+      By default nmap asks DNS for the name of every host it finds. On large ranges or slow DNS
+      servers that adds a lot of time. -n turns it off.
+    when_to_use: For faster scans of big ranges, or when DNS lookups would leak that you are scanning.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -n -sn 10.0.0.0/16"
+
+  # ---------------- technique ----------------
+  - id: syn_scan
+    flag: "-sS"
+    group: technique
+    label: SYN scan (half-open)
+    summary: Fast, quiet TCP scan that never completes a connection.
+    details: >-
+      Sends the first packet of a TCP handshake. An open port answers "yes" (SYN/ACK) and nmap hangs
+      up before the connection completes, so many applications never log it. This is nmap's default
+      when run as root.
+    when_to_use: The standard choice for TCP scanning when you have root.
+    requires_root: true
+    noise: medium
+    speed_impact: none
+    example: "sudo nmap -sS 192.168.1.10"
+    conflicts_with: [connect_scan, ack_scan, fin_scan, null_scan, xmas_scan]
+  - id: connect_scan
+    flag: "-sT"
+    group: technique
+    label: TCP connect scan
+    summary: Opens a full TCP connection to each port. Works without root.
+    details: >-
+      Uses the operating system's normal connect() call, exactly like a browser or SSH client would.
+      Reliable and needs no special rights, but slower than SYN scan and more likely to show up in
+      the target's logs. This is nmap's default without root.
+    when_to_use: When you don't have root, or a SYN scan gives confusing results.
+    requires_root: false
+    noise: high
+    speed_impact: slower
+    example: "nmap -sT 192.168.1.10"
+    conflicts_with: [syn_scan, ack_scan, fin_scan, null_scan, xmas_scan]
+  - id: udp_scan
+    flag: "-sU"
+    group: technique
+    label: UDP scan
+    summary: Checks UDP services such as DNS (53), DHCP (67), SNMP (161).
+    details: >-
+      UDP has no handshake, so nmap sends a protocol-specific probe and waits. No reply could mean
+      open or filtered, and closed ports are rate-limited by most systems, so UDP scans are slow.
+      Keep the port list small. Can be combined with one TCP technique.
+    when_to_use: When you need to find UDP services, which TCP scans completely miss.
+    requires_root: true
+    noise: medium
+    speed_impact: much_slower
+    example: "sudo nmap -sU --top-ports 20 192.168.1.1"
+  - id: ack_scan
+    flag: "-sA"
+    group: technique
+    label: ACK scan (firewall mapping)
+    summary: Shows which ports a firewall filters, not which are open.
+    details: >-
+      Sends TCP ACK packets. Results are "unfiltered" (the packet got through) or "filtered"
+      (something blocked it). It never says "open". Used to understand firewall rules.
+    when_to_use: To map which ports a firewall lets through.
+    requires_root: true
+    noise: medium
+    speed_impact: none
+    example: "sudo nmap -sA 192.168.1.1"
+    conflicts_with: [syn_scan, connect_scan, fin_scan, null_scan, xmas_scan]
+  - id: fin_scan
+    flag: "-sF"
+    group: technique
+    label: FIN scan
+    summary: Sends a lone FIN packet; can slip past some simple firewalls.
+    details: >-
+      A closed port answers with a reset, an open port stays silent. Windows answers reset to
+      everything, so it is unreliable against Windows hosts.
+    when_to_use: "Advanced: testing simple stateless firewalls on Unix-like targets."
+    requires_root: true
+    noise: medium
+    speed_impact: none
+    example: "sudo nmap -sF 192.168.1.10"
+    conflicts_with: [syn_scan, connect_scan, ack_scan, null_scan, xmas_scan]
+  - id: null_scan
+    flag: "-sN"
+    group: technique
+    label: Null scan
+    summary: Sends a TCP packet with no flags set.
+    details: Same idea and limitations as the FIN scan, with an empty flag set.
+    when_to_use: "Advanced: firewall testing on Unix-like targets."
+    requires_root: true
+    noise: medium
+    speed_impact: none
+    example: "sudo nmap -sN 192.168.1.10"
+    conflicts_with: [syn_scan, connect_scan, ack_scan, fin_scan, xmas_scan]
+  - id: xmas_scan
+    flag: "-sX"
+    group: technique
+    label: Xmas scan
+    summary: Sends a packet with FIN, PSH and URG set ("lit up like a Christmas tree").
+    details: Same idea and limitations as the FIN scan, with an unusual flag combination.
+    when_to_use: "Advanced: firewall testing on Unix-like targets."
+    requires_root: true
+    noise: medium
+    speed_impact: none
+    example: "sudo nmap -sX 192.168.1.10"
+    conflicts_with: [syn_scan, connect_scan, ack_scan, fin_scan, null_scan]
+
+  # ---------------- ports ----------------
+  - id: ports
+    flag: "-p"
+    group: ports
+    label: Specific ports
+    summary: Scan exactly the ports you list.
+    details: >-
+      Comma-separated ports and ranges, for example 22,80,443 or 1-1024 or 22,8000-8100.
+      Each port must be between 1 and 65535.
+    when_to_use: When you know which services you care about.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -p 22,80,443 192.168.1.10"
+    render: separate
+    value: { type: ports, default: "22,80,443", placeholder: "22,80,443 or 1-1024" }
+    conflicts_with: [fast, top_ports, all_ports]
+  - id: fast
+    flag: "-F"
+    group: ports
+    label: Fast (top 100 ports)
+    summary: Checks only the 100 most common ports.
+    details: About ten times faster than the default 1,000 ports, and still finds most everyday services.
+    when_to_use: For a quick first look.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -F 192.168.1.10"
+    conflicts_with: [ports, top_ports, all_ports]
+  - id: top_ports
+    flag: "--top-ports"
+    group: ports
+    label: Top N most common ports
+    summary: Checks the N ports most often found open on the internet.
+    details: Nmap ranks ports by how often they are open in real-world scans. Pick how many to check.
+    when_to_use: To balance speed and coverage, e.g. 20 for UDP or 1000 for TCP.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap --top-ports 200 192.168.1.10"
+    render: separate
+    value: { type: int, min: 1, max: 65535, default: 200 }
+    conflicts_with: [ports, fast, all_ports]
+  - id: all_ports
+    flag: "-p-"
+    group: ports
+    label: All 65,535 ports
+    summary: Checks every TCP port. Thorough but slow.
+    details: >-
+      Services sometimes hide on unusual high ports (for example a web admin page on 8443 or a
+      backdoor on 31337). Scanning all ports finds them, at the cost of time.
+    when_to_use: When you need to be sure nothing is missed on one or a few hosts.
+    requires_root: false
+    noise: high
+    speed_impact: much_slower
+    example: "nmap -p- 192.168.1.10"
+    conflicts_with: [ports, fast, top_ports]
+
+  # ---------------- detection ----------------
+  - id: service_version
+    flag: "-sV"
+    group: detection
+    label: Detect service versions
+    summary: Asks each open port what software is running and which version.
+    details: >-
+      Nmap sends probes to open ports and matches the replies against a database of thousands of
+      services. Slower, but tells you e.g. "OpenSSH 8.9" instead of just "ssh".
+    when_to_use: When you need to know what software is behind an open port, e.g. to check for outdated versions.
+    requires_root: false
+    noise: medium
+    speed_impact: slower
+    example: "nmap -sV 192.168.1.10"
+  - id: version_intensity
+    flag: "--version-intensity"
+    group: detection
+    label: Version detection intensity (0-9)
+    summary: How many probes to try when identifying services. Higher is slower but more accurate.
+    details: 0 tries only the most likely probes, 9 tries all of them. The default is 7. Only matters together with version detection.
+    when_to_use: Lower it to speed up -sV, raise it when services come back unidentified.
+    requires_root: false
+    noise: medium
+    speed_impact: slower
+    example: "nmap -sV --version-intensity 9 192.168.1.10"
+    render: separate
+    value: { type: int, min: 0, max: 9, default: 7 }
+  - id: os_detect
+    flag: "-O"
+    group: detection
+    label: Detect operating system
+    summary: Guesses the OS from how the host answers unusual network packets.
+    details: >-
+      Every operating system's network stack has small quirks. Nmap sends a series of special probes
+      and compares the answers with thousands of known fingerprints. Works best when the host has
+      at least one open and one closed port.
+    when_to_use: To find out whether a device is Windows, Linux, a router, a printer, and so on.
+    requires_root: true
+    noise: medium
+    speed_impact: slower
+    example: "sudo nmap -O 192.168.1.10"
+  - id: os_guess
+    flag: "--osscan-guess"
+    group: detection
+    label: Guess OS aggressively
+    summary: Shows the closest OS matches even when nmap is not sure.
+    details: Without this, nmap only reports OS matches it is confident about. With it, you get best guesses with a confidence percentage.
+    when_to_use: Together with OS detection when it returns no result.
+    requires_root: true
+    noise: low
+    speed_impact: none
+    example: "sudo nmap -O --osscan-guess 192.168.1.10"
+  - id: aggressive
+    flag: "-A"
+    group: detection
+    label: Everything (version + OS + traceroute)
+    summary: Turns on service versions, OS detection and traceroute together.
+    details: >-
+      In real nmap, -A also runs the default NSE scripts (-sC). VisualNmap v1 does not run scripts,
+      so here -A means -sV -O --traceroute. Traceroute shows the network hops between you and the host.
+    when_to_use: When you want as much information as possible about a few hosts and time is not a concern.
+    requires_root: true
+    noise: high
+    speed_impact: much_slower
+    example: "sudo nmap -sV -O --traceroute 192.168.1.10"
+    expands_to: ["-sV", "-O", "--traceroute"]
+
+  # ---------------- timing ----------------
+  - id: timing
+    flag: "-T"
+    group: timing
+    label: Timing template (0-5)
+    summary: "0 paranoid, 1 sneaky, 2 polite, 3 normal, 4 aggressive, 5 insane."
+    details: >-
+      Controls how fast nmap sends probes and how long it waits. 0 and 1 are extremely slow and
+      meant to avoid intrusion detection. 2 is gentle on fragile devices. 3 is the default.
+      4 is a good choice on modern networks you own. 5 may miss results on slow links.
+    when_to_use: Use 4 on your own fast network, 2 when scanning old or fragile devices.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -T4 192.168.1.10"
+    render: attached
+    value: { type: int, min: 0, max: 5, default: 3 }
+  - id: max_retries
+    flag: "--max-retries"
+    group: timing
+    label: Max retries per port
+    summary: How many times nmap re-sends a probe that got no answer.
+    details: Lower values are faster but may report open ports as filtered on lossy networks. Nmap's default is up to 10.
+    when_to_use: Lower it (e.g. 1) to speed up scans of heavily filtered hosts.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap --max-retries 1 192.168.1.10"
+    render: separate
+    value: { type: int, min: 0, max: 10, default: 2 }
+  - id: host_timeout
+    flag: "--host-timeout"
+    group: timing
+    label: Give up on a host after
+    summary: Stops scanning a host that takes longer than this.
+    details: A number followed by ms, s, m or h, for example 30s, 10m or 1h. Results for a host that times out are dropped.
+    when_to_use: On big ranges, so one slow host doesn't hold up the whole scan.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap --host-timeout 10m 10.0.0.0/24"
+    render: separate
+    value: { type: duration, default: "30m", placeholder: "30s, 10m, 1h" }
+
+  # ---------------- output ----------------
+  - id: reason
+    flag: "--reason"
+    group: output
+    label: Show the reason for each state
+    summary: Explains why each port got its state (e.g. "syn-ack", "conn-refused", "no-response").
+    details: Great for learning. Shows the exact kind of reply nmap received for each port.
+    when_to_use: When you want to understand why a port is open, closed or filtered.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap --reason 192.168.1.10"
+  - id: open_only
+    flag: "--open"
+    group: output
+    label: Only show open ports
+    summary: Hides closed and filtered ports from the results.
+    details: Makes results shorter. Hosts with no open ports are left out too.
+    when_to_use: When scanning many hosts and you only care about what is reachable.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap --open 192.168.1.0/24"
+  - id: verbose
+    flag: "-v"
+    group: output
+    label: Verbose
+    summary: Makes nmap report more about what it is doing.
+    details: VisualNmap always adds -v behind the scenes so it can show live progress. Ticking it here just makes that visible in the command.
+    when_to_use: Always on in VisualNmap; shown for completeness.
+    requires_root: false
+    noise: low
+    speed_impact: none
+    example: "nmap -v 192.168.1.10"
