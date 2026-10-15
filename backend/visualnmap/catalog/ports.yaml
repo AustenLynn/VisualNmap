@@ -1,0 +1,71 @@
+# Plain-language notes for common ports (keyed by port number) and port states.
+ports:
+  20: { service: ftp-data, note: "FTP file transfer data channel. FTP sends passwords unencrypted." }
+  21: { service: ftp, note: "FTP file transfer. Sends passwords unencrypted; prefer SFTP. Check for anonymous login." }
+  22: { service: ssh, note: "Remote command-line access (SSH). Should be locked down with keys; often a target for password guessing." }
+  23: { service: telnet, note: "Old unencrypted remote login. Should almost never be open; common on cheap IoT devices." }
+  25: { service: smtp, note: "Email sending between mail servers." }
+  53: { service: domain, note: "DNS: turns names into IP addresses. Normal on routers and DNS servers." }
+  67: { service: dhcps, note: "DHCP server: hands out IP addresses on the network. Normal on routers." }
+  68: { service: dhcpc, note: "DHCP client side." }
+  69: { service: tftp, note: "Trivial FTP: no passwords at all. Used for network boot and device firmware." }
+  80: { service: http, note: "Unencrypted website. Fine for local devices; on the internet, prefer HTTPS (443)." }
+  88: { service: kerberos, note: "Kerberos login service. Usually means a Windows domain controller." }
+  110: { service: pop3, note: "Old email download protocol, unencrypted." }
+  111: { service: rpcbind, note: "Unix RPC directory service (used by NFS). Should not be exposed to the internet." }
+  119: { service: nntp, note: "Usenet news." }
+  123: { service: ntp, note: "Network time sync. Normal on routers and servers." }
+  135: { service: msrpc, note: "Windows RPC. Normal inside Windows networks; never expose to the internet." }
+  137: { service: netbios-ns, note: "Old Windows name service." }
+  138: { service: netbios-dgm, note: "Old Windows datagram service." }
+  139: { service: netbios-ssn, note: "Old Windows file sharing (NetBIOS). Never expose to the internet." }
+  143: { service: imap, note: "Email access protocol, unencrypted." }
+  161: { service: snmp, note: "Network device management. Default community strings like 'public' can leak a lot of information." }
+  162: { service: snmptrap, note: "SNMP alerts sent by devices." }
+  389: { service: ldap, note: "Directory service (users, groups). Common on domain controllers." }
+  443: { service: https, note: "Encrypted website (HTTPS). The normal port for secure web traffic." }
+  445: { service: microsoft-ds, note: "Windows file sharing (SMB). Should never be open to the internet." }
+  465: { service: smtps, note: "Encrypted email sending." }
+  500: { service: isakmp, note: "VPN (IPsec) key exchange." }
+  514: { service: syslog, note: "System log collection." }
+  515: { service: printer, note: "Old Unix printing (LPD)." }
+  548: { service: afp, note: "Apple file sharing." }
+  554: { service: rtsp, note: "Video streaming control; common on IP cameras." }
+  587: { service: submission, note: "Email submission from mail clients." }
+  631: { service: ipp, note: "Internet Printing Protocol (CUPS). Common on printers and Linux PCs." }
+  636: { service: ldaps, note: "Encrypted LDAP." }
+  993: { service: imaps, note: "Encrypted IMAP email access." }
+  995: { service: pop3s, note: "Encrypted POP3 email download." }
+  1194: { service: openvpn, note: "OpenVPN server." }
+  1433: { service: ms-sql-s, note: "Microsoft SQL Server database. Should not be exposed to the internet." }
+  1521: { service: oracle, note: "Oracle database listener." }
+  1723: { service: pptp, note: "Old, weak VPN protocol." }
+  1883: { service: mqtt, note: "IoT messaging (MQTT). Often has no authentication." }
+  1900: { service: upnp, note: "UPnP device discovery. Routers can be told to open ports through it." }
+  2049: { service: nfs, note: "Unix network file sharing." }
+  3000: { service: ppp, note: "Often a development web server (Node.js, Grafana)." }
+  3306: { service: mysql, note: "MySQL/MariaDB database. Should not be exposed to the internet." }
+  3389: { service: ms-wbt-server, note: "Windows Remote Desktop (RDP). A frequent attack target; keep it off the internet." }
+  5000: { service: upnp, note: "Often a development web server or a NAS/admin interface." }
+  5353: { service: mdns, note: "Multicast DNS (Bonjour/Avahi) for discovering devices on the LAN." }
+  5432: { service: postgresql, note: "PostgreSQL database. Should not be exposed to the internet." }
+  5900: { service: vnc, note: "VNC remote desktop. Often weakly protected." }
+  5985: { service: wsman, note: "Windows Remote Management (WinRM) over HTTP." }
+  6379: { service: redis, note: "Redis database. Frequently left without a password." }
+  8000: { service: http-alt, note: "Alternative web port, common for development servers and admin pages." }
+  8080: { service: http-proxy, note: "Alternative web port: proxies, Tomcat, admin panels." }
+  8443: { service: https-alt, note: "Alternative HTTPS port, often an admin interface." }
+  8888: { service: sun-answerbook, note: "Often Jupyter notebooks or development web servers." }
+  9100: { service: jetdirect, note: "Raw printing to network printers." }
+  9200: { service: wap-wsp, note: "Often Elasticsearch, which is frequently left without authentication." }
+  11211: { service: memcache, note: "Memcached cache. Should never be exposed to the internet." }
+  27017: { service: mongod, note: "MongoDB database. Frequently left without authentication." }
+  62078: { service: iphone-sync, note: "Apple iPhone/iPad sync service." }
+
+states:
+  open: "A program is accepting connections on this port. Something is listening here; this is usually what you're looking for."
+  closed: "The host is reachable but nothing is listening on this port. The door exists but is locked; the host is definitely up."
+  filtered: "No answer, or the probe was blocked. Usually a firewall is dropping packets, so nmap can't tell if the port is open."
+  unfiltered: "The port is reachable but nmap can't tell if it's open or closed. Only seen with ACK scans (-sA), used to map firewall rules."
+  open|filtered: "Nmap can't tell open from filtered. Common with UDP: no reply could mean open or blocked."
+  closed|filtered: "Nmap can't tell closed from filtered. Rare; seen with some advanced scan types."

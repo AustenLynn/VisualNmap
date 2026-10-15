@@ -1,0 +1,55 @@
+# Guided-mode presets. Option ids must exist in options.yaml.
+profiles:
+  - id: find_devices
+    title: Find devices
+    question: Which devices are on my network?
+    explanation: >-
+      Asks every address in the range "are you there?" without checking any ports. The result is a
+      list of devices that are online. As root on a local network it also shows MAC addresses and
+      manufacturers.
+    typical_duration: 10-30 seconds for a home network (/24)
+    options: [{ id: ping_only }]
+  - id: quick_ports
+    title: Quick port check
+    question: What's open on a machine? (fast)
+    explanation: Checks the 100 most common ports at a brisk pace. A good first look at any device.
+    typical_duration: a few seconds per host
+    options: [{ id: fast }, { id: timing, value: 4 }]
+  - id: full_ports
+    title: Full port check
+    question: What's open on a machine? (thorough)
+    explanation: Checks all 65,535 TCP ports so nothing hiding on an unusual port is missed.
+    typical_duration: 1-10 minutes per host
+    options: [{ id: all_ports }, { id: timing, value: 4 }]
+  - id: services
+    title: Identify services
+    question: What software is running?
+    explanation: Finds open ports among the top 100, then asks each one what program and version it runs.
+    typical_duration: 10 seconds to 2 minutes per host
+    options: [{ id: service_version }, { id: fast }, { id: timing, value: 4 }]
+  - id: os_detect
+    title: Detect operating system
+    question: What operating system is it?
+    explanation: Guesses the OS from tiny differences in how the device answers special network packets.
+    typical_duration: 10-30 seconds per host
+    options: [{ id: os_detect }, { id: os_guess }, { id: fast }]
+  - id: stealth
+    title: Quiet scan
+    question: Scan quietly
+    explanation: >-
+      A half-open SYN scan sent slowly. Connections are never completed, so applications rarely
+      log it, and the slow pace is less likely to trigger alarms.
+    typical_duration: 1-3 minutes per host
+    options: [{ id: syn_scan }, { id: timing, value: 2 }, { id: fast }]
+  - id: udp_common
+    title: Common UDP services
+    question: What UDP services are running?
+    explanation: Checks the 20 most common UDP ports (DNS, DHCP, SNMP, NTP...). UDP is slow by nature.
+    typical_duration: 1-5 minutes per host
+    options: [{ id: udp_scan }, { id: top_ports, value: 20 }]
+  - id: everything
+    title: Everything
+    question: Tell me everything (slow)
+    explanation: Service versions, OS detection and traceroute on the top 100 ports. The most information, the most time.
+    typical_duration: 30 seconds to 3 minutes per host
+    options: [{ id: aggressive }, { id: timing, value: 4 }, { id: fast }]

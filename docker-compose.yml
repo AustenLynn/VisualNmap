@@ -1,0 +1,22 @@
+services:
+  visualnmap:
+    build: .
+    image: visualnmap:local
+    container_name: visualnmap
+    ports:
+      - "127.0.0.1:8765:8765" # dashboard reachable only from this computer
+    cap_add:
+      - NET_RAW # raw packets for SYN, OS and UDP scans
+      - NET_ADMIN
+    volumes:
+      - visualnmap-data:/data # scan history survives rebuilds
+    restart: unless-stopped
+    # Native Linux only: give nmap the host's own network view (better LAN discovery).
+    # If you enable this, remove the "ports:" section above AND uncomment the environment
+    # lines, otherwise the dashboard would listen on every network interface.
+    # network_mode: host
+    # environment:
+    #   VISUALNMAP_HOST: 127.0.0.1
+
+volumes:
+  visualnmap-data:
