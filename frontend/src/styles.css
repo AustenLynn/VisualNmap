@@ -113,3 +113,10 @@ th { color: var(--muted); font-weight: 600; font-size: 13px; }
 .state-open { color: var(--ok); font-weight: 600; } .state-filtered, .state-open-filtered { color: var(--warn); } .state-closed { color: var(--muted); }
 .states-help { margin-top: 16px; } .states-help dl > div { display: grid; grid-template-columns: 140px 1fr; gap: 8px; } .states-help dd { margin: 0; }
 .result-actions { display: flex; gap: 16px; align-items: center; margin-top: 16px; }
+
+.history-table td { white-space: nowrap; }
+.row-actions { display: flex; gap: 8px; align-items: center; }
+.compare-btn { margin-top: 12px; }
+.compare { margin-top: 16px; }
+.diff-add { color: var(--ok); margin-right: 6px; }
+.diff-remove { color: var(--error); margin-right: 6px; text-decoration: line-through; }

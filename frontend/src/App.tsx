@@ -3,9 +3,9 @@ import { StatusBanner } from "./components/StatusBanner";
 import { useAppData } from "./hooks/useAppData";
 import { Builder } from "./pages/Builder";
 import { Guided } from "./pages/Guided";
+import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { Scan } from "./pages/Scan";
-import { Placeholder } from "./pages/Placeholder";
 
 export function App() {
   const { status } = useAppData();
@@ -30,7 +30,8 @@ export function App() {
           <Route path="/guided" element={<Guided />} />
           <Route path="/builder" element={<Builder />} />
           <Route path="/scans/:id" element={<Scan />} />
-          <Route path="/history" element={<Placeholder name="History" />} />
+          <Route path="/history" element={<History />} />
+          <Route path="*" element={<p>Page not found.</p>} />
         </Routes>
       </main>
     </div>
