@@ -71,7 +71,7 @@ export VISUALNMAP_DATA="$PWD/data"
 
 if [ "$USE_SUDO" -eq 1 ]; then
   echo "==> Starting VisualNmap with sudo (needed for SYN, OS and UDP scans)"
-  exec sudo --preserve-env=VISUALNMAP_HOST,VISUALNMAP_PORT,VISUALNMAP_DATA,VISUALNMAP_STATIC \
+  exec sudo --preserve-env=VISUALNMAP_HOST,VISUALNMAP_PORT,VISUALNMAP_DATA,VISUALNMAP_STATIC,VISUALNMAP_ALLOWED_HOSTS \
     "$VENV/bin/python" -m visualnmap
 else
   echo "==> Starting VisualNmap without root"

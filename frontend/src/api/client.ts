@@ -46,9 +46,17 @@ export const api = {
   exportUrl: (id: string, format: "xml" | "json") => `/api/scans/${encodeURIComponent(id)}/export?format=${format}`,
 };
 
-export function openScanStream(id: string, onEvent: (event: StreamEvent) => void): () => void {
+export function openScanStream(
+  id: string,
+  onEvent: (event: StreamEvent) => void,
+  onClose?: () => void,
+): () => void {
   const proto = window.location.protocol === "https:" ? "wss" : "ws";
   const ws = new WebSocket(`${proto}://${window.location.host}/api/scans/${encodeURIComponent(id)}/stream`);
   ws.onmessage = (msg) => onEvent(JSON.parse(msg.data) as StreamEvent);
-  return () => ws.close();
+  ws.onclose = () => onClose?.();
+  return () => {
+    ws.onclose = null; // closing on purpose is not a dropped connection
+    ws.close();
+  };
 }

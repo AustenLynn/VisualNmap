@@ -11,6 +11,11 @@ import { formatDate, withSkipPing } from "../lib/format";
 
 export function Scan() {
   const { id = "" } = useParams();
+  // Keyed by id so per-scan state (like "Cancelling…") resets when "Run again" opens a new scan.
+  return <ScanView key={id} id={id} />;
+}
+
+function ScanView({ id }: { id: string }) {
   const { record, notFound, lines, progress } = useScan(id);
   const { run, busy, error: runError } = useRunScan();
   const [cancelling, setCancelling] = useState(false);

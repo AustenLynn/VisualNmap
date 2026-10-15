@@ -51,7 +51,7 @@ test("running scan streams output and progress, then shows results", async () =>
     return () => {};
   });
   renderScan();
-  await waitFor(() => expect(stream).toHaveBeenCalledWith("abc123", expect.any(Function)));
+  await waitFor(() => expect(stream).toHaveBeenCalledWith("abc123", expect.any(Function), expect.any(Function)));
   act(() => emit({ type: "output", line: "Started: Connect Scan" }));
   act(() => emit({ type: "progress", task: "Connect Scan", percent: 42.5, eta: "about 2 min left" }));
   expect(screen.getByRole("log")).toHaveTextContent("Started: Connect Scan");
@@ -99,4 +99,40 @@ test("unknown scan", async () => {
   getScan.mockRejectedValue(new ApiError(404, { message: "Scan not found." }));
   renderScan();
   expect(await screen.findByText(/Scan not found/)).toBeInTheDocument();
+});
+
+test("cancel state does not leak into the next scan", async () => {
+  const cancelled: ScanRecord = { ...recordFixture, status: "cancelled" };
+  getScan
+    .mockResolvedValueOnce(running) // scan A while running
+    .mockResolvedValueOnce(cancelled) // scan A after done
+    .mockResolvedValue({ ...running, id: "new1" }); // scan B
+  let emit: (e: StreamEvent) => void = () => {};
+  stream.mockImplementation((_id, onEvent) => {
+    emit = onEvent;
+    return () => {};
+  });
+  const user = userEvent.setup();
+  renderScan();
+  await user.click(await screen.findByRole("button", { name: "Cancel scan" }));
+  expect(screen.getByRole("button", { name: "Cancelling…" })).toBeDisabled();
+  act(() => emit({ type: "done", status: "cancelled" }));
+  await user.click(await screen.findByRole("button", { name: "Run again" }));
+  await waitFor(() => expect(getScan).toHaveBeenCalledWith("new1"));
+  expect(await screen.findByRole("button", { name: "Cancel scan" })).toBeEnabled();
+});
+
+test("a dropped stream re-checks the scan and reconnects while it runs", async () => {
+  getScan.mockResolvedValueOnce(running).mockResolvedValueOnce(running).mockResolvedValueOnce(recordFixture);
+  const closers: Array<() => void> = [];
+  stream.mockImplementation((_id, _onEvent, onClose) => {
+    if (onClose) closers.push(onClose);
+    return () => {};
+  });
+  renderScan();
+  await waitFor(() => expect(closers).toHaveLength(1));
+  act(() => closers[0]()); // connection lost, no "done" seen
+  await waitFor(() => expect(stream).toHaveBeenCalledTimes(2), { timeout: 3000 });
+  act(() => closers[1]()); // lost again; this time the scan has finished
+  expect(await screen.findByRole("heading", { level: 2, name: /pi\.lan/ }, { timeout: 3000 })).toBeInTheDocument();
 });

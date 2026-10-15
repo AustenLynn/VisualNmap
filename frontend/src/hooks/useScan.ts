@@ -10,6 +10,7 @@ export interface Progress {
 }
 
 const MAX_LINES = 2000;
+const RECONNECT_DELAY_MS = 1000;
 
 export function useScan(id: string) {
   const { refreshStatus } = useAppData();
@@ -21,6 +22,7 @@ export function useScan(id: string) {
   useEffect(() => {
     let closed = false;
     let closeStream: (() => void) | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     setRecord(null);
     setNotFound(false);
     setLines([]);
@@ -32,17 +34,37 @@ export function useScan(id: string) {
         return r;
       });
 
-    load()
-      .then((r) => {
-        if (closed || r.status !== "running") return;
-        closeStream = openScanStream(id, (event) => {
+    const connect = () => {
+      let sawDone = false;
+      setLines([]); // the server replays the whole buffer on every (re)connect
+      closeStream = openScanStream(
+        id,
+        (event) => {
           if (event.type === "output") setLines((l) => [...l.slice(-(MAX_LINES - 1)), event.line]);
           else if (event.type === "progress") setProgress({ task: event.task, percent: event.percent, eta: event.eta });
           else if (event.type === "done") {
+            sawDone = true;
             void load().catch(() => {});
             void refreshStatus().catch(() => {});
           }
-        });
+        },
+        () => {
+          // Connection dropped (sleep, network, server restart): re-check, and resume if still running.
+          if (closed || sawDone) return;
+          retryTimer = setTimeout(() => {
+            load()
+              .then((r) => {
+                if (!closed && r.status === "running") connect();
+              })
+              .catch(() => {});
+          }, RECONNECT_DELAY_MS);
+        },
+      );
+    };
+
+    load()
+      .then((r) => {
+        if (!closed && r.status === "running") connect();
       })
       .catch((err: unknown) => {
         if (!closed && err instanceof ApiError && err.status === 404) setNotFound(true);
@@ -50,6 +72,7 @@ export function useScan(id: string) {
 
     return () => {
       closed = true;
+      clearTimeout(retryTimer);
       closeStream?.();
     };
   }, [id, refreshStatus]);
